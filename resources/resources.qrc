@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>icon/empainter.icns</file>
+        <file>icon/empainter.ico</file>
+        <file>icon/empainter.rc</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>svg/pen-solid.svg</file>
+        <file>svg/brush-solid.svg</file>
+        <file>svg/palette-solid.svg</file>
+        <file>svg/floppy-disk-solid.svg</file>
+        <file>svg/file-solid.svg</file>
+        <file>svg/eraser-solid.svg</file>
+    </qresource>
+</RCC>

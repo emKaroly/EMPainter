@@ -29,6 +29,8 @@ MainWindow::MainWindow(QWidget* parent, const QString& appname)
   createActions();
   createMenus();
   setupButtons();
+  connect(mPaintArea, &PaintArea::mousePositionChanged, this,
+          &MainWindow::showMousePosition);
 
   initialize();
 }
@@ -98,6 +100,11 @@ void MainWindow::penSize() {
   if (ok) {
     mPaintArea->setPenSize(newWidth);
   }
+}
+
+void MainWindow::showMousePosition(QPoint p) {
+  QString pos("x: %0 y: %1");
+  statusBar()->showMessage(pos.arg(p.x(), 4).arg(p.y(), 4), 5000);
 }
 
 void MainWindow::createActions() {

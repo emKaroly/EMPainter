@@ -8,6 +8,7 @@
 
 PaintArea::PaintArea(QWidget* parent) : QWidget(parent) {
   setAttribute(Qt::WA_StaticContents);
+  setMouseTracking(true);
   newImage();
 }
 
@@ -95,6 +96,7 @@ void PaintArea::mousePressEvent(QMouseEvent* event) {
 }
 
 void PaintArea::mouseMoveEvent(QMouseEvent* event) {
+  emit mousePositionChanged(event->pos());
   if ((event->buttons() & Qt::LeftButton) && mButtonPressed) {
     drawTo(event->pos());
   }

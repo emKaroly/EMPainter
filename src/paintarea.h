@@ -31,6 +31,9 @@ class PaintArea : public QWidget {
   void changeTool(Tool t);
   bool isModified() const { return mImageModified; }
 
+ signals:
+  void mousePositionChanged(QPoint position);
+
  protected:
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;

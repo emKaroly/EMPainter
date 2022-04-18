@@ -30,6 +30,7 @@ class MainWindow : public QMainWindow {
   void save();
   void setPenColor();
   void penSize();
+  void showMousePosition(QPoint p);
 
  private:
   void createActions();

@@ -121,24 +121,32 @@ void PaintArea::drawTo(const QPoint& currentPoint) {
   int x0 = mLastPoint.x();
   int y1 = currentPoint.y();
   int x1 = currentPoint.x();
-  if (mCurrentTool == Brush) {
-    drawWithBrush(x1, y1);
+  int dx = std::abs(x0 - x1);
+  int dy = std::abs(y0 - y1);
+  // qDebug() << " drawTo: x:" << x0 << " y:" << y0 << " -> x:" << x1
+  //         << " y:" << y1;
+
+  if ((dx == 1 && dy == 0) || (dx == 0 && dy == 1) || (dx == 0 && dy == 0)) {
+    if (mCurrentTool == Brush) {
+      drawWithBrush(x1, y1);
+    } else {
+      drawWithPen(x1, y1);
+    }
   } else {
-    drawWithPen(x1, y1);
-  }
-  if (x0 != x1 && y0 != y1) {
     drawLine(x0, y0, x1, y1);
   }
 
+  mLastPoint = currentPoint;
   mImageModified = true;
-  QRect updateArea(mLastPoint.x(), mLastPoint.y(),
+  QRect updateArea(mLastPoint.x() - mBrushImage.width(),
+                   mLastPoint.y() - mBrushImage.height(),
                    currentPoint.x() + mBrushImage.width(),
                    currentPoint.y() + mBrushImage.height());
   update(updateArea);
-  mLastPoint = currentPoint;
 }
 
 void PaintArea::drawWithBrush(int x, int y) {
+  // qDebug() << "    Brush: x:" << x << " y:" << y;
   for (int by = 0; by < mBrushImage.height(); by++) {
     uchar* s = mCurrentDrawing.scanLine(y + by);
     for (int bx = 0; bx < mBrushImage.width(); bx++) {
@@ -150,6 +158,7 @@ void PaintArea::drawWithBrush(int x, int y) {
 }
 
 void PaintArea::drawWithPen(int x, int y) {
+  // qDebug() << "                       Pen: x:" << x << " y:" << y;
   for (int by = 0; by < mPenSize; by++) {
     uchar* s = mCurrentDrawing.scanLine(y + by);
     for (int bx = 0; bx < mPenSize; bx++) {
@@ -159,24 +168,46 @@ void PaintArea::drawWithPen(int x, int y) {
 }
 
 void PaintArea::drawLine(int x1, int y1, int x2, int y2) {
-  int dx, dy, p;
-  dx = x2 - x1;
-  dy = y2 - y1;
-  p = 2 * (dy) - (dx);
-  while (x1 <= x2) {
-    if (p < 0) {
-      x1 = x1 + 1;
-      y1 = y1;
-      p = p + 2 * (dy);
+  // Bresenham's line algorithm
+  const bool steep = (fabs(y2 - y1) > fabs(x2 - x1));
+  if (steep) {
+    std::swap(x1, y1);
+    std::swap(x2, y2);
+  }
+
+  if (x1 > x2) {
+    std::swap(x1, x2);
+    std::swap(y1, y2);
+  }
+
+  const float dx = x2 - x1;
+  const float dy = fabs(y2 - y1);
+
+  float error = dx / 2.0f;
+  const int ystep = (y1 < y2) ? 1 : -1;
+  int y = (int)y1;
+
+  const int maxX = (int)x2;
+
+  for (int x = (int)x1; x <= maxX; x++) {
+    if (steep) {
+      if (mCurrentTool == Brush) {
+        drawWithBrush(y, x);
+      } else {
+        drawWithPen(y, x);
+      }
     } else {
-      x1 = x1 + 1;
-      y1 = y1 + 1;
-      p = p + 2 * (dy - dx);
+      if (mCurrentTool == Brush) {
+        drawWithBrush(x, y);
+      } else {
+        drawWithPen(x, y);
+      }
     }
-    if (mCurrentTool == Brush) {
-      drawWithBrush(x1, y1);
-    } else {
-      drawWithPen(x1, y1);
+
+    error -= dy;
+    if (error < 0) {
+      y += ystep;
+      error += dx;
     }
   }
 }

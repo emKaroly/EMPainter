@@ -167,6 +167,12 @@ void MainWindow::createActions() {
   mNewImageAction = new QAction(tr("&NewImage"), this);
   connect(mNewImageAction, &QAction::triggered,
           [this]() { mPaintArea->newImage(); });
+  mUndoAction = new QAction(tr("Undo"), this);
+  mUndoAction->setShortcut(Qt::CTRL + Qt::Key_Z);
+  connect(mUndoAction, &QAction::triggered, [this]() { mPaintArea->undo(); });
+  mRedoAction = new QAction(tr("Redo"), this);
+  mRedoAction->setShortcut(Qt::CTRL + Qt::Key_Y);
+  connect(mRedoAction, &QAction::triggered, [this]() { mPaintArea->redo(); });
 }
 
 void MainWindow::createMenus() {
@@ -188,6 +194,10 @@ void MainWindow::createMenus() {
   mFileMenu->addSeparator();
   mFileMenu->addAction(mExitAction);
 
+  mEditMenu = new QMenu(tr("&Edit"), this);
+  mEditMenu->addAction(mUndoAction);
+  mEditMenu->addAction(mRedoAction);
+
   mOptionMenu = new QMenu(tr("&Options"), this);
   mOptionMenu->addAction(mSetBrushImageAction);
   mOptionMenu->addAction(mSetPenColorAction);
@@ -195,6 +205,7 @@ void MainWindow::createMenus() {
   mOptionMenu->addSeparator();
 
   menuBar()->addMenu(mFileMenu);
+  menuBar()->addMenu(mEditMenu);
   menuBar()->addMenu(mOptionMenu);
 }
 

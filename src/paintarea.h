@@ -31,6 +31,9 @@ class PaintArea : public QWidget {
   void changeTool(Tool t);
   bool isModified() const { return mImageModified; }
 
+  void undo();
+  void redo();
+
  signals:
   void mousePositionChanged(QPoint position);
 
@@ -41,6 +44,11 @@ class PaintArea : public QWidget {
   void paintEvent(QPaintEvent* event) override;
 
  private:
+  const QImage& currentDrawingConst() const;
+  QImage& currentDrawing();
+  void clearUndo();
+  void pushUndo();
+  void pushUndo(const QImage& image);
   void drawTo(const QPoint& currentPoint);
   void drawLine(int x1, int y1, int x2, int y2);
   void resizeImage(QImage* image, const QSize& newSize);
@@ -52,7 +60,8 @@ class PaintArea : public QWidget {
   int mPenSize = 1;
 
   Tool mCurrentTool;
-  QImage mCurrentDrawing;
+  int mUndoStackIndex;
+  QList<QImage> mUndoStack;
   QImage mBrushImage;
   QColor mBrushColor;
   QPoint mLastPoint;

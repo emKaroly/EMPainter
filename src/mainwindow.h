@@ -51,6 +51,9 @@ class MainWindow : public QMainWindow {
   PaintArea* mPaintArea;
 
   QMenu* mFileMenu;
+  QMenu* mEditMenu;
+  QAction* mUndoAction;
+  QAction* mRedoAction;
   QMenu* mSaveAsMenu;
   QAction* mNewImageAction;
   QAction* mOpenAction;

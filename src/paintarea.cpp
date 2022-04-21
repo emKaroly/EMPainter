@@ -6,24 +6,25 @@
 #include <QPixmap>
 #include <QRgb>
 
-PaintArea::PaintArea(QWidget* parent) : QWidget(parent) {
+PaintArea::PaintArea(QWidget* parent) : QWidget(parent), mUndoStackIndex(-1) {
   setAttribute(Qt::WA_StaticContents);
   setMouseTracking(true);
   newImage();
 }
 
 QSize PaintArea::sizeHint() const {
-  return mCurrentDrawing.size();
+  return currentDrawingConst().size();
 }
 
 void PaintArea::newImage(int w, int h) {
-  mCurrentDrawing = QImage(w, h, QImage::Format::Format_ARGB32);
-  mCurrentDrawing.fill(Qt::white);
+  pushUndo(QImage(w, h, QImage::Format::Format_ARGB32));
+  clearUndo();
+  currentDrawing().fill(Qt::white);
 
   mCurrentImageData.resize(4 * w * h);
 
   mImageModified = false;
-  resize(mCurrentDrawing.size().expandedTo(size()));
+  resize(currentDrawingConst().size().expandedTo(size()));
 }
 
 bool PaintArea::openImage(const QString& fileName) {
@@ -34,14 +35,17 @@ bool PaintArea::openImage(const QString& fileName) {
 
   QSize newSize = loadedImage.size().expandedTo(size());
   resizeImage(&loadedImage, newSize);
-  mCurrentDrawing = loadedImage;
+
+  pushUndo(loadedImage);
+  clearUndo();
+
   mImageModified = false;
   update();
   return true;
 }
 
 bool PaintArea::saveImage(const QString& fileName, const char* fileFormat) {
-  QImage visibleImage = mCurrentDrawing;
+  QImage visibleImage = currentDrawingConst();
   resizeImage(&visibleImage, size());
 
   if (visibleImage.save(fileName, fileFormat)) {
@@ -52,7 +56,8 @@ bool PaintArea::saveImage(const QString& fileName, const char* fileFormat) {
 }
 
 void PaintArea::clearImage() {
-  mCurrentDrawing.fill(Qt::white);
+  pushUndo();
+  currentDrawing().fill(Qt::white);
   mImageModified = true;
   update();
 }
@@ -90,6 +95,7 @@ void PaintArea::changeTool(Tool t) {
 
 void PaintArea::mousePressEvent(QMouseEvent* event) {
   if (event->button() == Qt::LeftButton) {
+    pushUndo();
     mLastPoint = event->pos();
     mButtonPressed = true;
   }
@@ -112,7 +118,50 @@ void PaintArea::mouseReleaseEvent(QMouseEvent* event) {
 void PaintArea::paintEvent(QPaintEvent* event) {
   QPainter painter(this);
   QRect dirtyRect = event->rect();
-  painter.drawImage(dirtyRect, mCurrentDrawing, dirtyRect);
+  painter.drawImage(dirtyRect, currentDrawingConst(), dirtyRect);
+}
+
+const QImage& PaintArea::currentDrawingConst() const {
+  return mUndoStack.at(mUndoStackIndex);
+}
+
+QImage& PaintArea::currentDrawing() {
+  return mUndoStack[mUndoStackIndex];
+}
+
+void PaintArea::undo() {
+  if (mUndoStackIndex > 0) {
+    mUndoStackIndex--;
+    update();
+  }
+}
+
+void PaintArea::redo() {
+  if (mUndoStackIndex <= mUndoStack.size() - 2) {
+    ++mUndoStackIndex;
+    update();
+  }
+}
+
+void PaintArea::clearUndo() {
+  if (mUndoStackIndex > 0) {
+    mUndoStack[0].swap(currentDrawing());
+    mUndoStackIndex = 0;
+    mUndoStack.erase(mUndoStack.begin() + 1, mUndoStack.end());
+  }
+}
+
+void PaintArea::pushUndo() {
+  pushUndo(currentDrawing());
+}
+
+void PaintArea::pushUndo(const QImage& image) {
+  if (mUndoStackIndex < mUndoStack.size() - 1) {
+    mUndoStack.erase(mUndoStack.begin() + mUndoStackIndex + 1,
+                     mUndoStack.end());
+  }
+  mUndoStackIndex++;
+  mUndoStack.insert(mUndoStackIndex, image);
 }
 
 void PaintArea::drawTo(const QPoint& currentPoint) {
@@ -148,7 +197,7 @@ void PaintArea::drawTo(const QPoint& currentPoint) {
 void PaintArea::drawWithBrush(int x, int y) {
   // qDebug() << "    Brush: x:" << x << " y:" << y;
   for (int by = 0; by < mBrushImage.height(); by++) {
-    uchar* s = mCurrentDrawing.scanLine(y + by);
+    uchar* s = currentDrawing().scanLine(y + by);
     for (int bx = 0; bx < mBrushImage.width(); bx++) {
       const uchar* sl = mBrushImage.scanLine(by);
       uint* px = (uint*)(sl + bx * 4);
@@ -160,7 +209,7 @@ void PaintArea::drawWithBrush(int x, int y) {
 void PaintArea::drawWithPen(int x, int y) {
   // qDebug() << "                       Pen: x:" << x << " y:" << y;
   for (int by = 0; by < mPenSize; by++) {
-    uchar* s = mCurrentDrawing.scanLine(y + by);
+    uchar* s = currentDrawing().scanLine(y + by);
     for (int bx = 0; bx < mPenSize; bx++) {
       ((uint*)s)[x + bx] = mBrushColor.rgba();
     }
